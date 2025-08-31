@@ -36,6 +36,10 @@ const PolygonsNo1 = (p) => {
 
     p.colourScheme = [];
 
+    p.generateColourScheme = () => {
+        p.colourScheme = new ColorGenerator(p, 'bright', 0.2).getTetradic();
+    };
+
     /** 
      * Setup function - Initialize your canvas and any starting properties
      * This runs once after preload
@@ -61,11 +65,11 @@ const PolygonsNo1 = (p) => {
      */
     p.draw = () => {
         if (p.showingStatic) {
-            p.background(0, 0, 0);
+            p.background(0, 0, 0, 0.9);
             p.drawGrid();
             p.noLoop(); 
         } else if(p.audioLoaded && p.song.isPlaying() || p.songHasFinished){
-            p.background(0, 0, 0);
+            p.background(0, 0, 0, 0.9);
             p.drawGrid();
         }
     }
@@ -80,6 +84,10 @@ const PolygonsNo1 = (p) => {
             p.drawHexagonGrid();
         } else if (p.grid.layout === 'triangle') {
             p.drawTriGrid();
+        } else if (p.grid.layout === 'pentagon') {
+            p.drawPentagonGrid();
+        } else if (p.grid.layout === 'octagon') {
+            p.drawOctagonGrid();
         } else {
             p.drawRectangularGrid();
         }
@@ -208,7 +216,7 @@ const PolygonsNo1 = (p) => {
         
 
         
-        const barEndCues = [11, 22, 34, 0];
+        const barEndCues = [11, 22, 34, 44];
         let cellsToActivate;
         
         if (barEndCues.includes(currentCue % 45)) {
@@ -228,10 +236,12 @@ const PolygonsNo1 = (p) => {
     };
 
     p.setSelectedGridType = () => {
-        const gridTypes = [p.generateRectGrid, p.generateTriGrid, p.generateHexGrid];
+        const gridTypes = [p.generateRectGrid, p.generateTriGrid, p.generateHexGrid, p.generatePentGrid, p.generateOctGrid];
         const currentType = p.grid.layout === 'rect' ? p.generateRectGrid : 
                            p.grid.layout === 'triangle' ? p.generateTriGrid : 
-                           p.generateHexGrid;
+                           p.grid.layout === 'hexagon' ? p.generateHexGrid :
+                           p.grid.layout === 'pentagon' ? p.generatePentGrid :
+                           p.generateOctGrid;
         const availableTypes = gridTypes.filter(type => type !== currentType);
         return p.random(availableTypes);
     };
@@ -330,7 +340,7 @@ const PolygonsNo1 = (p) => {
         const availableSizes = [4,5,6,7,8,9,10,11,12].filter(size => size !== p.numOfRows);
         const grid = [];
         p.numOfRows = p.random(availableSizes);
-        p.colourScheme = new ColorGenerator(p, 'bright', 0.4).getTetradic();
+        p.generateColourScheme();
         
         for (let row = 0; row < p.numOfRows; row++) {
             grid[row] = [];
@@ -356,7 +366,7 @@ const PolygonsNo1 = (p) => {
     p.generateHexGrid = () => {
         const availableSizes = [2, 3, 4, 5, 6].filter(size => size !== p.hexGridRadius);
         p.hexGridRadius = p.random(availableSizes);
-        p.colourScheme = new ColorGenerator(p, 'bright', 0.4).getTetradic();
+        p.generateColourScheme();
         const hexGrid = [];
         
         for (let q = -p.hexGridRadius; q <= p.hexGridRadius; q++) {
@@ -381,7 +391,7 @@ const PolygonsNo1 = (p) => {
     p.generateTriGrid = () => {
         const availableSizes = [6, 7, 8, 9, 10].filter(size => size !== p.triGridRows);
         p.triGridRows = p.random(availableSizes);
-        p.colourScheme = new ColorGenerator(p, 'bright', 0.4).getTetradic();
+        p.generateColourScheme();
         const triGrid = [];
         
         const triangleHeight = p.height / (p.triGridRows + 1);
@@ -406,8 +416,6 @@ const PolygonsNo1 = (p) => {
             }
         }
         
-
-        
         return {
             triangleSize: triangleSize,
             maxRows: p.triGridRows,
@@ -415,6 +423,244 @@ const PolygonsNo1 = (p) => {
             grid: triGrid
         };
     };
+
+    p.drawPentagonGrid = () => {
+        if (!p.grid || p.grid.layout !== 'pentagon') {
+            return;
+        }
+        
+        const pentagonSize = p.grid.pentagonSize;
+        
+        for (let i = 0; i < p.grid.grid.length; i++) {
+            const polygon = p.grid.grid[i];
+            polygon.size = pentagonSize;
+            polygon.draw(polygon.x, polygon.y);
+        }
+    };
+
+    p.drawOctagonGrid = () => {
+        if (!p.grid || p.grid.layout !== 'octagon') {
+            return;
+        }
+        
+        const octagonSize = p.grid.octagonSize;
+        
+        for (let i = 0; i < p.grid.grid.length; i++) {
+            const polygon = p.grid.grid[i];
+            polygon.size = octagonSize;
+            polygon.draw(polygon.x, polygon.y);
+        }
+    };
+
+
+
+    p.pentGridRows = 0;
+    p.generatePentGrid = () => {
+        p.generateColourScheme();
+        const pentGrid = [];
+        
+        const centerX = p.width / 2;
+        const centerY = p.height / 2;
+        const maxRadius = Math.min(p.width, p.height) * 0.45;
+        const availableSizes = [3,4,5,6].filter(size => size !== p.pentGridRows);
+        const pointsPerEdge = p.random(availableSizes);
+        p.pentGridRows = pointsPerEdge;
+        const pentagonSize = maxRadius / (pointsPerEdge * 1.25);
+        
+        const layerRadius = maxRadius;
+        const pentagonVertices = [];
+        for (let i = 0; i < 5; i++) {
+            const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+            const x = centerX + Math.cos(angle) * layerRadius;
+            const y = centerY + Math.sin(angle) * layerRadius;
+            pentagonVertices.push({x, y});
+        }
+        
+        for (let edge = 0; edge < 5; edge++) {
+            const startX = pentagonVertices[edge].x;
+            const startY = pentagonVertices[edge].y;
+            const endX = pentagonVertices[(edge + 1) % 5].x;
+            const endY = pentagonVertices[(edge + 1) % 5].y;
+            
+            for (let i = 1; i < pointsPerEdge; i++) {
+                const t = i / (pointsPerEdge - 1);
+                const polygon = new Polygon(p);
+                polygon.x = startX + (endX - startX) * t;
+                polygon.y = startY + (endY - startY) * t;
+                pentGrid.push(polygon);
+            }
+        }
+        
+        const rows = {};
+        pentGrid.forEach(polygon => {
+            const yKey = Math.round(polygon.y);
+            if (!rows[yKey]) rows[yKey] = [];
+            rows[yKey].push(polygon);
+        });
+        
+        const sortedRows = Object.keys(rows).map(Number).sort((a, b) => a - b);
+        
+        const calculateTargetCounts = (pointsPerEdge) => {
+            const numRows = pointsPerEdge * 2 - 1;
+            const targetCounts = [];
+            
+            for (let row = 0; row < numRows; row++) {
+                if (row === 0) {
+                    targetCounts.push(1);
+                } else if (row < pointsPerEdge) {
+                    targetCounts.push(2 * row + 1);
+                } else {
+                    const remainingRows = numRows - row;
+                    if (remainingRows === 0) {
+                        targetCounts.push(2 * remainingRows + 2);
+                    } else {
+                        targetCounts.push(2 * remainingRows + 1);
+                    }
+                }
+            }
+            
+            return targetCounts;
+        };
+        
+        const targetCounts = calculateTargetCounts(pointsPerEdge);
+        
+        for (let i = 0; i < sortedRows.length && i < targetCounts.length; i++) {
+            const currentRow = rows[sortedRows[i]];
+            const currentCount = currentRow.length;
+            const targetCount = targetCounts[i];
+            
+            if (currentCount < targetCount) {
+                const currentXPositions = currentRow.map(p => Math.round(p.x)).sort((a, b) => a - b);
+                const minX = Math.min(...currentXPositions);
+                const maxX = Math.max(...currentXPositions);
+                const range = maxX - minX;
+                
+                const spacing = range / (targetCount - 1);
+                
+                for (let j = 0; j < targetCount; j++) {
+                    const targetX = minX + (spacing * j);
+                    const xRounded = Math.round(targetX);
+                    const yRounded = Math.round(currentRow[0].y);
+                    
+                    const existingPolygon = currentRow.find(p => Math.round(p.x) === xRounded);
+                    if (!existingPolygon) {
+                        const polygon = new Polygon(p);
+                        polygon.x = targetX;
+                        polygon.y = yRounded;
+                        pentGrid.push(polygon);
+                    }
+                }
+            }
+        }
+        
+        return {
+            pentagonSize: pentagonSize,
+            maxRows: p.pentGridRows,
+            layout: 'pentagon',
+            grid: pentGrid
+        };
+    };
+
+    p.octGridRows = 0;
+    p.generateOctGrid = () => {
+        p.generateColourScheme();
+        const octGrid = [];
+        
+        const centerX = p.width / 2;
+        const centerY = p.height / 2;
+        const maxRadius = Math.min(p.width, p.height) * 0.45;
+        const availableSizes = [3, 4, 5].filter(size => size !== p.octGridRows);
+        const pointsPerEdge = p.random(availableSizes);
+        p.octGridRows = pointsPerEdge;
+        const octagonSize = maxRadius / (pointsPerEdge * 1.25 + 0.5);
+        
+        const layerRadius = maxRadius;
+        const octagonVertices = [];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * Math.PI) / 4 + Math.PI / 8;
+            const x = centerX + Math.cos(angle) * layerRadius;
+            const y = centerY + Math.sin(angle) * layerRadius;
+            octagonVertices.push({x, y});
+        }
+        
+        for (let edge = 0; edge < 8; edge++) {
+            const startX = octagonVertices[edge].x;
+            const startY = octagonVertices[edge].y;
+            const endX = octagonVertices[(edge + 1) % 8].x;
+            const endY = octagonVertices[(edge + 1) % 8].y;
+            
+            for (let i = 1; i < pointsPerEdge; i++) {
+                const t = i / (pointsPerEdge - 1);
+                const polygon = new Polygon(p);
+                polygon.x = startX + (endX - startX) * t;
+                polygon.y = startY + (endY - startY) * t;
+                octGrid.push(polygon);
+            }
+        }
+        
+        const rows = {};
+        octGrid.forEach(polygon => {
+            const yKey = Math.round(polygon.y);
+            if (!rows[yKey]) rows[yKey] = [];
+            rows[yKey].push(polygon);
+        });
+        
+        const sortedRows = Object.keys(rows).map(Number).sort((a, b) => a - b);
+        
+        const calculateTargetCounts = (pointsPerEdge) => {
+            const numRows = pointsPerEdge * 3 - 2;
+            const targetCounts = [];
+            
+            for (let row = 0; row < numRows; row++) {
+                if (row < Math.floor(numRows / 2)) {
+                    targetCounts.push(pointsPerEdge + (row * 2));
+                } else {
+                    const remainingRows = numRows - row - 1;
+                    targetCounts.push(pointsPerEdge + (remainingRows * 2));
+                }
+            }
+            
+            return targetCounts;
+        };
+        
+        const targetCounts = calculateTargetCounts(pointsPerEdge);
+        
+        for (let i = 0; i < sortedRows.length && i < targetCounts.length; i++) {
+            const currentRow = rows[sortedRows[i]];
+            const currentCount = currentRow.length;
+            const targetCount = targetCounts[i];
+            
+            if (currentCount < targetCount) {
+                const currentXPositions = currentRow.map(p => Math.round(p.x)).sort((a, b) => a - b);
+                const minX = Math.min(...currentXPositions);
+                const maxX = Math.max(...currentXPositions);
+                const range = maxX - minX;
+                
+                const spacing = range / (targetCount - 1);
+                
+                for (let j = 0; j < targetCount; j++) {
+                    const targetX = minX + (spacing * j);
+                    const xRounded = Math.round(targetX);
+                    const yRounded = Math.round(currentRow[0].y);
+                    
+                    const existingPolygon = currentRow.find(p => Math.round(p.x) === xRounded);
+                    if (!existingPolygon) {
+                        const polygon = new Polygon(p);
+                        polygon.x = targetX;
+                        polygon.y = yRounded;
+                        octGrid.push(polygon);
+                    }
+                }
+            }
+        }
+        
+        return {
+            octagonSize: octagonSize,
+            maxRows: p.octGridRows,
+            layout: 'octagon',
+            grid: octGrid
+        };
+    }
 };
 
 export default PolygonsNo1;

@@ -15,31 +15,6 @@ export class Polygon {
         this.duration = 0;
         this.birthTime = 0;
         this.progress = 0;
-        
-        this.initDrawProgress();
-    }
-
-    initDrawProgress() {
-        // Increase the likelihood of using a fixed color for the whole donut (e.g., 80% chance)
-        this.useFixedColour = this.p.random() < 0.8; // 80% chance
-        this.fixedColour = this.p.random(this.p.currentColorScheme);
-
-        // Create draw elements array - only the main drawing loops
-        this.drawElements = [];
-        for (let i = 0; i < (this.numOfRotations * 2); i++) {
-            for (let j = 0; j <= 4; j++) {
-                this.drawElements.push({
-                    type: 'shape',
-                    rotation: i,
-                    size: j,
-                    order: i * 5 + j,
-                    colour: this.useFixedColour ? this.fixedColour : this.p.random(this.p.currentColorScheme),
-                    // Add randomized rotation offset
-                    rotationOffset: this.p.random(-this.p.PI, this.p.PI)
-                });
-            }
-        }
-        this.drawElements = this.p.shuffle(this.drawElements);
     }
 
     init(duration) {
@@ -63,13 +38,17 @@ export class Polygon {
         this.update();
         
         this.p.push();
-        this.p.translate(x, y);
+        if (this.shape === 'equilateral') {
+            this.p.translate(x, y + this.size * 0.125);
+        } else {
+            this.p.translate(x, y);
+        }
         this.p.fill(this.colour);
-        this.p.stroke(0, 0, 100, 0.4);
+        this.p.stroke(0, 0, 100, 0.3);
         
-        const shapesToDraw = Math.floor(this.progress * 3) + 1;
+        const shapesToDraw = Math.floor(this.progress * 5) + 1;
         for (let i = 0; i < shapesToDraw; i++) {
-            let shapeSize = this.size / Math.pow(2, i);
+            let shapeSize = this.size / Math.pow(1.2, i);
             shapeSize = this.shape === 'rect' ? shapeSize * 0.8 : shapeSize;
             this.p[this.shape](0, 0, shapeSize, shapeSize);
         }
