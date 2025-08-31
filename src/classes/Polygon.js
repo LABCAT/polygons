@@ -12,16 +12,9 @@ export class Polygon {
         this.maxSize = 100;
                 
         // Size progress properties
-        this.duration = null;
-        this.birthTime = null;
+        this.duration = 0;
+        this.birthTime = 0;
         this.progress = 0;
-        
-        // Draw progress properties
-        this.drawProgressEnabled = false;
-        this.drawElements = [];
-        this.drawProgress = 0;
-        this.drawDuration = null;
-        this.drawBirthTime = null;
         
         this.initDrawProgress();
     }
@@ -56,10 +49,12 @@ export class Polygon {
     }
 
     update() {
-        const currentTime = this.p.song.currentTime() * 1000;
-        const elapsed = currentTime - this.birthTime;
-        const rawProgress = elapsed / this.duration;
-        this.progress = this.p.constrain(rawProgress, 0, 1);
+        if(this.progress < 1) {
+            const currentTime = this.p.song.currentTime() * 1000;
+            const elapsed = currentTime - this.birthTime;
+            const rawProgress = elapsed / this.duration;
+            this.progress = this.p.constrain(rawProgress, 0, 1);
+        }
     }
 
     draw(x, y) {

@@ -34,6 +34,8 @@ const PolygonsNo1 = (p) => {
         });
     };
 
+    p.colourScheme = [];
+
     /** 
      * Setup function - Initialize your canvas and any starting properties
      * This runs once after preload
@@ -48,7 +50,8 @@ const PolygonsNo1 = (p) => {
         p.rectMode(p.CENTER);
         p.colorMode(p.HSB);
         p.strokeWeight(2);
-        p.grid = p.generateRandomGrid();
+        p.selectedGridType = p.generateRectGrid;
+        p.grid = p.generateRectGrid();
     };
 
 
@@ -73,7 +76,16 @@ const PolygonsNo1 = (p) => {
      */
     p.drawGrid = () => {
         if (!p.grid) return;
-        
+        if (p.grid.layout === 'hexagon') {
+            p.drawHexagonGrid();
+        } else if (p.grid.layout === 'triangle') {
+            p.drawTriGrid();
+        } else {
+            p.drawRectangularGrid();
+        }
+    };
+
+    p.drawRectangularGrid = () => {
         const gridSize = p.grid.rows;
         const canvasSize = Math.min(p.width, p.height);
         const gridTotalSize = canvasSize * 0.95;
@@ -93,6 +105,47 @@ const PolygonsNo1 = (p) => {
         }
     };
 
+    p.drawHexagonGrid = () => {
+        if (!p.grid || p.grid.layout !== 'hexagon') {
+            return;
+        }
+        
+        const gridRadius = p.grid.gridRadius;
+        const canvasSize = Math.min(p.width, p.height);
+        const cellSize = (canvasSize * 0.5) / (gridRadius * 2);
+        const hexWidth = cellSize * 1.5;
+        const hexHeight = cellSize * Math.sqrt(3);
+        const centerX = p.width / 2;
+        const centerY = p.height / 2;
+        
+        let cellIndex = 0;
+        for (let q = -gridRadius; q <= gridRadius; q++) {
+            for (let r = Math.max(-gridRadius, -q - gridRadius); r <= Math.min(gridRadius, -q + gridRadius); r++) {
+                const x = centerX + hexWidth * q;
+                const y = centerY + hexHeight * (r + q/2);
+                
+                const polygon = p.grid.grid[cellIndex];
+                polygon.size = cellSize;
+                polygon.draw(x, y);
+                cellIndex++;
+            }
+        }
+    };
+
+    p.drawTriGrid = () => {
+        if (!p.grid || p.grid.layout !== 'triangle') {
+            return;
+        }
+        
+        const triangleSize = p.grid.triangleSize;
+        
+        for (let i = 0; i < p.grid.grid.length; i++) {
+            const polygon = p.grid.grid[i];
+            polygon.size = triangleSize;
+            polygon.draw(polygon.x, polygon.y);
+        }
+    };
+
     /** 
      * MIDI loading and processing
      * Handles synchronization between audio and visuals
@@ -107,7 +160,9 @@ const PolygonsNo1 = (p) => {
              * Example: Schedule different tracks for different visual elements
              */
             const track1 = result.tracks[5].notes; // Rodent Lead
+            const track2 = result.tracks[8].notes; // Big Cat Arp
             p.scheduleCueSet(track1, 'executeTrack1');
+            p.scheduleCueSet(track2, 'executeTrack2');
             document.getElementById("loader").classList.add("loading--complete");
             document.getElementById('play-icon').classList.add('fade-in');
             p.audioLoaded = true;
@@ -135,19 +190,34 @@ const PolygonsNo1 = (p) => {
         }
     }
 
-    p.executeTrack1 = (note) => {
+
+    p.activateGridCells = (note) => {
         const { currentCue, durationTicks } = note;
         const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
 
-        const barStartCues = [1, 13, 24, 36];
+        let availableCells;
+        let totalCells;
         
+        if (p.grid.layout === 'rect') {
+            availableCells = p.grid.grid.flat().filter(cell => !cell.canDraw);
+            totalCells = p.grid.rows * p.grid.cols;
+        } else {
+            availableCells = p.grid.grid.filter(cell => !cell.canDraw);
+            totalCells = p.grid.grid.length;
+        }
         
-        if (barStartCues.includes(currentCue % 45)) {
-            p.grid = p.generateRandomGrid();
-        } 
-        const availableCells = p.grid.grid.flat().filter(cell => !cell.canDraw);
-        const totalCells = p.grid.rows * p.grid.cols;
-        const cellsToActivate = Math.floor(totalCells / 16);
+
+        
+        const barEndCues = [11, 22, 34, 0];
+        let cellsToActivate;
+        
+        if (barEndCues.includes(currentCue % 45)) {
+            cellsToActivate = availableCells.length;
+        } else {
+            cellsToActivate = Math.floor(totalCells / 12);
+        }
+        
+
         
         for (let i = 0; i < cellsToActivate && availableCells.length > 0; i++) {
             const selectedCell = p.random(availableCells);
@@ -155,12 +225,45 @@ const PolygonsNo1 = (p) => {
             selectedCell.init(duration);
             availableCells.splice(availableCells.indexOf(selectedCell), 1);
         }
+    };
+
+    p.setSelectedGridType = () => {
+        const gridTypes = [p.generateRectGrid, p.generateTriGrid, p.generateHexGrid];
+        const currentType = p.grid.layout === 'rect' ? p.generateRectGrid : 
+                           p.grid.layout === 'triangle' ? p.generateTriGrid : 
+                           p.generateHexGrid;
+        const availableTypes = gridTypes.filter(type => type !== currentType);
+        return p.random(availableTypes);
+    };
+
+    p.executeTrack1 = (note) => {
+        const { currentCue } = note;
+
+        const barStartCues = [1, 13, 24, 36];
+        
+        if (barStartCues.includes(currentCue % 45)) {
+            if(currentCue % 45 === 1) {
+                p.selectedGridType = p.setSelectedGridType();
+            }
+            p.grid = p.selectedGridType();
+        } 
+        
+        p.activateGridCells(note);
     }
 
     p.executeTrack2 = (note) => {
-        const { currentCue, durationTicks } = note;
-        const duration = (durationTicks / p.PPQ) * (60 / p.bpm);
+        const { currentCue } = note;
 
+        const barStartCues = [1, 13, 24, 36];
+        
+        if (barStartCues.includes(currentCue % 45)) {
+            if(currentCue % 45 === 1) {
+                p.selectedGridType = p.setSelectedGridType();
+            }
+            p.grid = p.selectedGridType();
+        } 
+        
+        p.activateGridCells(note);
     }
 
     /** 
@@ -215,9 +318,6 @@ const PolygonsNo1 = (p) => {
         return p.height > p.width;
     };
 
-    p.colourScheme = [];
-    p.numOfRows = 0;
-
     /**
      * Generate a random grid with equal rows and columns
      * Grid size will be randomly selected between 4 and 8 (inclusive)
@@ -225,7 +325,8 @@ const PolygonsNo1 = (p) => {
      * Each cell contains a random value between 0 and 1
      * @returns {Object} Object containing rows, cols, and the generated grid
      */
-    p.generateRandomGrid = () => {
+    p.numOfRows = 0;
+    p.generateRectGrid = () => {
         const availableSizes = [4,5,6,7,8,9,10,11,12].filter(size => size !== p.numOfRows);
         const grid = [];
         p.numOfRows = p.random(availableSizes);
@@ -242,7 +343,76 @@ const PolygonsNo1 = (p) => {
         return {
             rows: p.numOfRows,
             cols: p.numOfRows,
+            layout: 'rect',
             grid: grid
+        };
+    };
+
+    /**
+     * Generate a hexagonal grid with polygons
+     * @returns {Object} Object containing the hexagonal grid data
+     */
+    p.hexGridRadius = 0;
+    p.generateHexGrid = () => {
+        const availableSizes = [2, 3, 4, 5, 6].filter(size => size !== p.hexGridRadius);
+        p.hexGridRadius = p.random(availableSizes);
+        p.colourScheme = new ColorGenerator(p, 'bright', 0.4).getTetradic();
+        const hexGrid = [];
+        
+        for (let q = -p.hexGridRadius; q <= p.hexGridRadius; q++) {
+            for (let r = Math.max(-p.hexGridRadius, -q - p.hexGridRadius); r <= Math.min(p.hexGridRadius, -q + p.hexGridRadius); r++) {
+                const polygon = new Polygon(p);
+                hexGrid.push(polygon);
+            }
+        }
+        
+        return {
+            gridRadius: p.hexGridRadius,
+            layout: 'hexagon',
+            grid: hexGrid
+        };
+    };
+
+    /**
+     * Generate a triangular grid that covers the whole screen
+     * @returns {Object} Object containing the triangular grid data
+     */
+    p.triGridRows = 0;
+    p.generateTriGrid = () => {
+        const availableSizes = [6, 7, 8, 9, 10].filter(size => size !== p.triGridRows);
+        p.triGridRows = p.random(availableSizes);
+        p.colourScheme = new ColorGenerator(p, 'bright', 0.4).getTetradic();
+        const triGrid = [];
+        
+        const triangleHeight = p.height / (p.triGridRows + 1);
+        const triangleSize = Math.max(triangleHeight / (Math.sqrt(3) / 2), 20);
+        const triangleWidth = triangleSize;
+        
+        const centerX = p.width / 2;
+        const startY = triangleHeight;
+        
+
+        
+        for (let row = 0; row < p.triGridRows; row++) {
+            const polygonsInRow = row + 1;
+            const rowWidth = polygonsInRow * triangleWidth;
+            const startX = centerX - (rowWidth / 2) + (triangleWidth / 2);
+            
+            for (let col = 0; col < polygonsInRow; col++) {
+                const polygon = new Polygon(p);
+                polygon.x = startX + col * triangleWidth;
+                polygon.y = startY + row * triangleHeight;
+                triGrid.push(polygon);
+            }
+        }
+        
+
+        
+        return {
+            triangleSize: triangleSize,
+            maxRows: p.triGridRows,
+            layout: 'triangle',
+            grid: triGrid
         };
     };
 };
