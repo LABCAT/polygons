@@ -36,7 +36,7 @@ export class Polygon {
     }
 
     setAlternativePattern() {
-        const altPatterns = ['spiral', 'pulse', 'rotation', 'wave'];
+        const altPatterns = ['pulse', 'pulseNested', 'rotatingNested', 'wave', 'waveNested', 'rotatingDefault', 'nested'];
         this.patternType = this.p.random(altPatterns);
     }
 
@@ -73,17 +73,26 @@ export class Polygon {
         const shapesToDraw = Math.floor(this.progress * 8) + 1;
         
         switch(this.patternType) {
-            case 'spiral':
-                this.drawSpiralPattern(shapesToDraw);
-                break;
             case 'pulse':
                 this.drawPulsePattern(shapesToDraw);
                 break;
-            case 'rotation':
-                this.drawRotationPattern(shapesToDraw);
+            case 'pulseNested':
+                this.drawPulseNestedPattern(shapesToDraw);
+                break;
+            case 'rotatingNested':
+                this.drawRotatingNestedPattern(shapesToDraw);
                 break;
             case 'wave':
                 this.drawWavePattern(shapesToDraw);
+                break;
+            case 'waveNested':
+                this.drawWaveNestedPattern(shapesToDraw);
+                break;
+            case 'rotatingDefault':
+                this.drawRotatingDefaultPattern(shapesToDraw);
+                break;
+            case 'nested':
+                this.drawNestedPattern(shapesToDraw);
                 break;
             default:
                 this.drawDefaultPattern(shapesToDraw);
@@ -92,26 +101,6 @@ export class Polygon {
         this.p.pop();
     }
 
-    drawSpiralPattern(shapesToDraw) {
-        for (let i = 0; i < shapesToDraw; i++) {
-            const angle = i * 0.5 * this.rotationDirection + this.p.frameCount * 0.02 * this.rotationDirection;
-            const radius = i * 8;
-            const xOffset = Math.cos(angle) * radius;
-            const yOffset = Math.sin(angle) * radius;
-            
-            this.p.push();
-            this.p.translate(xOffset, yOffset);
-            this.p.rotate(angle * 2 * this.rotationDirection);
-            
-            let shapeSize = this.size / Math.pow(1.3, i);
-            shapeSize = this.shape === 'rect' ? shapeSize * 0.8 : shapeSize;
-            
-            this.p.fill(this.colour);
-            this.p.stroke(this.p.strokeColour[0], this.p.strokeColour[1], this.p.strokeColour[2], 0.3);
-            this.p[this.shape](0, 0, shapeSize, shapeSize);
-            this.p.pop();
-        }
-    }
 
     drawPulsePattern(shapesToDraw) {
         const pulse = Math.sin(this.p.frameCount * this.pulseSpeed) * 0.3 + 1;
@@ -130,7 +119,7 @@ export class Polygon {
         }
     }
 
-    drawRotationPattern(shapesToDraw) {
+    drawRotatingNestedPattern(shapesToDraw) {
         for (let i = 0; i < shapesToDraw; i++) {
             this.p.push();
             this.p.rotate(i * 0.3 + this.p.frameCount * this.rotationSpeed);
@@ -161,6 +150,67 @@ export class Polygon {
             this.p.stroke(this.p.strokeColour[0], this.p.strokeColour[1], this.p.strokeColour[2], 0.3);
             this.p[this.shape](0, 0, shapeSize, shapeSize);
             this.p.pop();
+        }
+    }
+
+    drawPulseNestedPattern(shapesToDraw) {
+        const pulse = Math.sin(this.p.frameCount * this.pulseSpeed) * 0.3 + 1;
+        
+        for (let i = 0; i < shapesToDraw; i++) {
+            this.p.push();
+            this.p.rotate(i * 0.3);
+            
+            let shapeSize = this.size / Math.pow(1.2, i);
+            shapeSize = this.shape === 'rect' ? shapeSize * 0.8 : shapeSize;
+            
+            this.p.fill(this.colour);
+            this.p.stroke(this.p.strokeColour[0], this.p.strokeColour[1], this.p.strokeColour[2], 0.3);
+            this.p[this.shape](0, 0, shapeSize, shapeSize);
+            this.p.pop();
+        }
+        
+        this.p.scale(pulse);
+    }
+
+    drawWaveNestedPattern(shapesToDraw) {
+        for (let i = 0; i < shapesToDraw; i++) {
+            this.p.push();
+            this.p.rotate(i * 0.3 + Math.sin(this.waveOffset * this.rotationDirection + i * 0.2) * 0.2);
+            
+            let shapeSize = this.size / Math.pow(1.2, i);
+            shapeSize = this.shape === 'rect' ? shapeSize * 0.8 : shapeSize;
+            
+            this.p.fill(this.colour);
+            this.p.stroke(this.p.strokeColour[0], this.p.strokeColour[1], this.p.strokeColour[2], 0.3);
+            this.p[this.shape](0, 0, shapeSize, shapeSize);
+            this.p.pop();
+        }
+    }
+
+    drawRotatingDefaultPattern(shapesToDraw) {
+        this.p.push();
+        this.p.rotate(this.p.frameCount * this.rotationSpeed);
+        
+        for (let i = 0; i < shapesToDraw; i++) {
+            let shapeSize = this.size / Math.pow(1.2, i);
+            shapeSize = this.shape === 'rect' ? shapeSize * 0.8 : shapeSize;
+            
+            this.p.fill(this.colour);
+            this.p.stroke(this.p.strokeColour[0], this.p.strokeColour[1], this.p.strokeColour[2], 0.3);
+            this.p[this.shape](0, 0, shapeSize, shapeSize);
+        }
+        
+        this.p.pop();
+    }
+
+    drawNestedPattern(shapesToDraw) {
+        for (let i = 0; i < shapesToDraw; i++) {
+            let shapeSize = this.size / Math.pow(1.2, i);
+            shapeSize = this.shape === 'rect' ? shapeSize * 0.8 : shapeSize;
+            
+            this.p.fill(this.colour);
+            this.p.stroke(this.p.strokeColour[0], this.p.strokeColour[1], this.p.strokeColour[2], 0.3);
+            this.p[this.shape](0, 0, shapeSize, shapeSize);
         }
     }
 

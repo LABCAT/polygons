@@ -42,7 +42,7 @@ const PolygonsNo1 = (p) => {
 
     p.generateColourSchemeAndPattern = () => {
         p.generateColourScheme();
-        return p.random(['default', 'spiral', 'pulse', 'rotation', 'wave']);
+        return p.random(['default', 'pulse', 'pulseNested', 'rotatingNested', 'wave', 'waveNested', 'rotatingDefault', 'nested']);
     };
     
     /** 
@@ -223,7 +223,7 @@ const PolygonsNo1 = (p) => {
         
 
         
-        const barEndCues = [11, 22, 34, 44];
+        const barEndCues = [10, 22, 34, 44];
         let cellsToActivate;
         
         if (barEndCues.includes(currentCue % 45)) {
@@ -257,7 +257,8 @@ const PolygonsNo1 = (p) => {
     p.executeTrack1 = (note) => {
         const { currentCue } = note;
 
-        const barStartCues = [1, 12, 23, 35];
+
+        const barStartCues = [1, 11, 23, 35];
         
         if (barStartCues.includes(currentCue % 45)) {
             if(currentCue % 45 === 1) {
