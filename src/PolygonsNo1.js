@@ -75,7 +75,7 @@ const PolygonsNo1 = (p) => {
             p.background(p.bgColour[0], p.bgColour[1], p.bgColour[2]);
             p.drawGrid();
             p.noLoop(); 
-        } else if(p.audioLoaded && p.song.isPlaying() || p.songHasFinished){
+        } else if((p.audioLoaded && p.song.isPlaying()) || p.songHasFinished){
             p.background(p.bgColour[0], p.bgColour[1], p.bgColour[2], 0.1);
             p.drawGrid();
         }
