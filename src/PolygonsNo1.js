@@ -31,6 +31,10 @@ const PolygonsNo1 = (p) => {
                 p.canvas.classList.add('p5Canvas--cursor-play');
                 p.canvas.classList.remove('p5Canvas--cursor-pause');
             }
+            // Stop recording when the song finishes
+            if (p.captureInstance) {
+                try { p.captureInstance.stop(); } catch (e) {}
+            }
         });
     };
 
@@ -315,6 +319,14 @@ const PolygonsNo1 = (p) => {
                 if (p.canvas) {
                     p.canvas.classList.add('p5Canvas--cursor-pause');
                     p.canvas.classList.remove('p5Canvas--cursor-play');
+                }
+                // Start recording when playback begins
+                if (typeof window !== 'undefined' && window.P5Capture && !p.captureInstance) {
+                    // Create capture instance bound to this p5 sketch
+                    p.captureInstance = window.P5Capture.getInstance(p);
+                }
+                if (p.captureInstance && !p.songHasFinished) {
+                    try { p.captureInstance.start(); } catch (e) {}
                 }
             }
         }
